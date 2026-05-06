@@ -1,13 +1,29 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 namespace TicTacToe
 {
     public class Board : MonoBehaviour
     {
+        private struct Move
+        {
+            public Cell Cell;
+            public string Player;
+            public Move(Cell cell, string player)
+            {
+                Cell = cell;
+                Player = player;
+            }
+        }
+
+        
+        
         [SerializeField] private Cell[] _cells;
 
         private string _currentPlayer = "X";
         private bool _isGameOver;
+        private readonly Stack<Move> _lastMove = new Stack<Move>();
+        
 
         private static readonly int[][] WinningLines = new int[][]
         {
@@ -46,6 +62,7 @@ namespace TicTacToe
             }
 
             cell.SetMark(_currentPlayer);
+            _lastMove.Push(new Move(cell, _currentPlayer));
             GameEvents.MoveMade?.Invoke();
 
             string winner = CheckWinner();
@@ -53,7 +70,7 @@ namespace TicTacToe
             {
                 _isGameOver = true;
                 GameEvents.GameWon?.Invoke(winner);
-                ResetBoard();
+                //ResetBoard();
                 return;
             }
 
@@ -61,15 +78,29 @@ namespace TicTacToe
             {
                 _isGameOver = true;
                 GameEvents.GameDrawn?.Invoke();
-                ResetBoard();
+                //ResetBoard();
                 return;
             }
 
             _currentPlayer = _currentPlayer == "X" ? "O" : "X";
         }
-
-        private void ResetBoard()
+        
+        public void Undo()
         {
+            if (_lastMove.Count == 0)
+            {
+                GameEvents.InvalidMove?.Invoke();
+                return;
+            }
+            Move lastMove = _lastMove.Pop();
+            lastMove.Cell.Clear();
+            _currentPlayer = lastMove.Player;
+            _isGameOver = false;
+        }
+
+        public void ResetBoard()
+        {
+            _lastMove.Clear();
             for (int i = 0; i < _cells.Length; i++)
             {
                 _cells[i].Clear();
@@ -107,4 +138,5 @@ namespace TicTacToe
             return true;
         }
     }
+    
 }
